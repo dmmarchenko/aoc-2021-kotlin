@@ -6,14 +6,17 @@ repositories {
     mavenCentral()
 }
 
+dependencies {
+    testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
+}
+
 tasks {
-    sourceSets {
-        main {
-            java.srcDirs("src")
-        }
-    }
 
     wrapper {
         gradleVersion = "7.3"
     }
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
