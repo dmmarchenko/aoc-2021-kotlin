@@ -4,25 +4,25 @@ import org.junit.jupiter.api.Test
 class Day05Test {
 
     @Test
-    internal fun part1Simple() {
+    fun part1Simple() {
         val actualResult = Day05.part1(readInput("day5Simple"))
         assertEquals(5, actualResult)
     }
 
     @Test
-    internal fun part1Real() {
+    fun part1Real() {
         val actualResult = Day05.part1(readInput("day5Real"))
         assertEquals(6225, actualResult)
     }
 
     @Test
-    internal fun part2Simple() {
+    fun part2Simple() {
         val actualResult = Day05.part2(readInput("day5Simple"))
         assertEquals(12, actualResult)
     }
 
     @Test
-    internal fun part2Real() {
+    fun part2Real() {
         val actualResult = Day05.part2(readInput("day5Real"))
         assertEquals(0, actualResult)
     }
