@@ -7,6 +7,8 @@ repositories {
 }
 
 dependencies {
+    implementation("org.nield:kotlin-statistics:1.2.1")
+
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
 }
 
