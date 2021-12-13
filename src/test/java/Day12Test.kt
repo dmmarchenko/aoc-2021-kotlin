@@ -7,11 +7,11 @@ class Day12Test {
 
     @ParameterizedTest
     @CsvSource(
-        "day12Simple1,10"
-        //"day12Simple2,19",
-        //"day12Simple3,226"
+        "day12Simple1,10",
+        "day12Simple2,19",
+        "day12Simple3,226"
     )
-    fun part1Simple1(fileName: String, expectedAnswer: Int) {
+    fun part1Simple2(fileName: String, expectedAnswer: Int) {
         val actualResult = Day12.part1(readInput(fileName))
         assertEquals(expectedAnswer, actualResult)
     }
@@ -19,13 +19,18 @@ class Day12Test {
     @Test
     fun part1Real() {
         val actualResult = Day12.part1(readInput("day12Real"))
-        assertEquals(0, actualResult)
+        assertEquals(4885, actualResult)
     }
 
-    @Test
-    fun part2Simple() {
-        val actualResult = Day12.part2(readInput("day12Simple"))
-        assertEquals(0, actualResult)
+    @ParameterizedTest
+    @CsvSource(
+        "day12Simple1,36",
+        "day12Simple2,103",
+        "day12Simple3,3509"
+    )
+    fun part2Simple(fileName: String, expectedAnswer: Int) {
+        val actualResult = Day12.part2(readInput(fileName))
+        assertEquals(expectedAnswer, actualResult)
     }
 
     @Test
