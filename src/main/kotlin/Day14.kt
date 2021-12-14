@@ -1,12 +1,20 @@
 object Day14 {
 
     fun part1(input: List<String>): Long {
+        return process(input, 10)
+    }
+
+    fun part2(input: List<String>): Long {
+        return process(input, 40)
+    }
+
+    private fun process(input: List<String>, iterations: Int): Long {
         val (template, rules) = readInput(input)
         var tokens = template.windowed(2, 1)
             .groupBy { it }
             .mapValues { it.value.size.toLong() }
 
-        repeat(10) {
+        repeat(iterations) {
             tokens = iterate(tokens, rules)
         }
 
@@ -36,10 +44,6 @@ object Day14 {
         if (template.startsWith(pair.first) || template.endsWith(pair.first)) {
             return 1
         }
-        return 0
-    }
-
-    fun part2(input: List<String>): Long {
         return 0
     }
 
