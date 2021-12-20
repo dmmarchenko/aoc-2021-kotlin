@@ -92,6 +92,6 @@ class Day18Test {
     @Test
     fun part2Real() {
         val actualResult = Day18.part2(readInput("day18Real"))
-        assertEquals(0, actualResult)
+        assertEquals(4807, actualResult)
     }
 }
