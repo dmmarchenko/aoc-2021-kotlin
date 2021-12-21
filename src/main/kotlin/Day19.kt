@@ -1,90 +1,109 @@
-import sample.Day19Sample
+import kotlin.math.abs
 
 object Day19 {
 
-    private val zOrientation = listOf<(Point) -> Point>(
-        { it },
-        { Point(it.z, it.y, it.x) },
-        { Point(it.x, it.z, it.y) },
-    )
-    private val plusMinus = listOf<(Point) -> Point>(
-        { it },
-        { Point(it.x, it.y, -it.z) },
-        { Point(it.x, -it.y, it.z) },
-        { Point(it.x, -it.y, -it.z) },
-        { Point(-it.x, it.y, it.z) },
-        { Point(-it.x, it.y, -it.z) },
-        { Point(-it.x, -it.y, it.z) },
-        { Point(-it.x, -it.y, -it.z) },
-    )
-
     fun part1(input: List<String>): Int {
-        return Day19Sample(input.joinToString(separator = "\n")).solvePart1()
-    }
-
-    fun myPart1(input: List<String>): Int {
         val scanners = parseInput(input)
-        val scanner0 = scanners[0]
-        val scanner1 = scanners[1]
-
-        val diffs0 = allDiffs(scanner0)
-
-        (0..23).forEach { i ->
-            val rotatedScanner1 = scanner1.rotate(i)
-            val diffs1 = allDiffs(rotatedScanner1)
-            val inters = diffs0.intersect(diffs1)
-            if (inters.size > 66) {
-                println(inters)
-            }
-        }
-        return 0
-    }
-
-    private fun allDiffs(points: List<Point>): Set<Point> {
-        val diffs = mutableSetOf<Point>()
-
-        points.indices.forEach { i ->
-            points.indices.filter { it != i }
-                .forEach { j ->
-                    diffs += points[j] - points[i]
-                }
-        }
-        return diffs
+        return assembleMap(scanners).beacons.size
     }
 
     fun part2(input: List<String>): Int {
-        return Day19Sample(input.joinToString(separator = "\n")).solvePart2()
+        val scanners = parseInput(input)
+        val assembleMap = assembleMap(scanners)
+        return assembleMap.scannersPositions.let { positions ->
+            positions.flatMapIndexed { index, first -> positions.drop(index + 1).map { second -> first to second } }
+                .maxOf { (first, second) -> first distanceTo second }
+        }
     }
 
-    private fun parseInput(input: List<String>): List<List<Point>> {
-        val result = mutableListOf<MutableList<Point>>()
-        var currentList = mutableListOf<Point>()
+    private fun assembleMap(scanners: List<Scanner>): AssembledMap {
+        val foundBeacons = scanners.first().beacons.toMutableSet()
+        val foundScannersPositions = mutableSetOf(Point(0, 0, 0))
+
+        val remaining = ArrayDeque<Scanner>().apply { addAll(scanners.drop(1)) }
+        while (remaining.isNotEmpty()) {
+            val candidate = remaining.removeFirst()
+            when (val transformedCandidate = Scanner(foundBeacons).getTransformedIfOverlap(candidate)) {
+                null -> remaining.add(candidate)
+                else -> {
+                    foundBeacons.addAll(transformedCandidate.beacons)
+                    foundScannersPositions.add(transformedCandidate.position)
+                }
+            }
+        }
+
+        return AssembledMap(foundBeacons, foundScannersPositions)
+    }
+
+    private fun parseInput(input: List<String>): List<Scanner> {
+        val scanners = mutableListOf<Scanner>()
+        var beacons = mutableSetOf<Point>()
 
         for (line in input) {
             if (line.contains(",")) {
                 val (x, y, z) = line.split(",").map { it.toInt() }
-                currentList += Point(x, y, z)
+                beacons += Point(x, y, z)
             }
             if (line.isEmpty()) {
-                result += currentList
-                currentList = mutableListOf()
+                scanners += Scanner(beacons)
+                beacons = mutableSetOf()
             }
         }
-        return result
+        return scanners
     }
 
-    fun List<Point>.rotate(rotationIndex: Int): List<Point> = this.map { rotate(it, rotationIndex) }
+    data class Scanner(val beacons: Set<Point>) {
 
-    fun rotate(p: Point, i: Int): Point {
-        val zDirectionIndex = i / 8
-        val plusMinusIndex = i % 8
+        fun allRotations() = beacons.map { it.allRotations() }.transpose().map { Scanner(it) }
 
-        return plusMinus[plusMinusIndex](zOrientation[zDirectionIndex](p))
+        fun getTransformedIfOverlap(otherScanner: Scanner): TransformedScanner? {
+            return otherScanner.allRotations().firstNotNullOfOrNull { otherReoriented ->
+                beacons.firstNotNullOfOrNull { first ->
+                    otherReoriented.beacons.firstNotNullOfOrNull { second ->
+                        val otherPosition = first - second
+                        val otherTransformed = otherReoriented.beacons.map { otherPosition + it }.toSet()
+                        when ((otherTransformed intersect beacons).size >= 12) {
+                            true -> TransformedScanner(otherTransformed, otherPosition)
+                            false -> null
+                        }
+                    }
+                }
+            }
+        }
+
+        private fun List<Set<Point>>.transpose(): List<Set<Point>> {
+            return when (all { it.isNotEmpty() }) {
+                true -> listOf(map { it.first() }.toSet()) + map { it.drop(1).toSet() }.transpose()
+                false -> emptyList()
+            }
+        }
     }
+
+    data class AssembledMap(val beacons: Set<Point>, val scannersPositions: Set<Point>)
+
+    data class TransformedScanner(val beacons: Set<Point>, val position: Point)
 
     data class Point(val x: Int, val y: Int, val z: Int) {
         operator fun minus(b: Point): Point {
             return Point(this.x - b.x, this.y - b.y, this.z - b.z)
+        }
+
+        operator fun plus(b: Point): Point {
+            return Point(this.x + b.x, this.y + b.y, this.z + b.z)
+        }
+
+        infix fun distanceTo(b: Point): Int {
+            return abs(this.x - b.x) + abs(this.y - b.y) + abs(this.z - b.z)
+        }
+
+        fun allRotations(): Set<Point> {
+            return setOf(
+                Point(x, y, z), Point(x, -z, y), Point(x, -y, -z), Point(x, z, -y), Point(-x, -y, z),
+                Point(-x, -z, -y), Point(-x, y, -z), Point(-x, z, y), Point(-z, x, -y), Point(y, x, -z),
+                Point(z, x, y), Point(-y, x, z), Point(z, -x, -y), Point(y, -x, z), Point(-z, -x, y),
+                Point(-y, -x, -z), Point(-y, -z, x), Point(z, -y, x), Point(y, z, x), Point(-z, y, x),
+                Point(z, y, -x), Point(-y, z, -x), Point(-z, -y, -x), Point(y, -z, -x),
+            )
         }
     }
 }
