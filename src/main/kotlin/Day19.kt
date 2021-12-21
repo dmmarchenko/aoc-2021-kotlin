@@ -70,12 +70,12 @@ object Day19 {
                 }
             }
         }
+    }
 
-        private fun List<Set<Point>>.transpose(): List<Set<Point>> {
-            return when (all { it.isNotEmpty() }) {
-                true -> listOf(map { it.first() }.toSet()) + map { it.drop(1).toSet() }.transpose()
-                false -> emptyList()
-            }
+    fun List<Set<Point>>.transpose(): List<Set<Point>> {
+        return when (all { it.isNotEmpty() }) {
+            true -> listOf(map { it.first() }.toSet()) + map { it.drop(1).toSet() }.transpose()
+            false -> emptyList()
         }
     }
 
