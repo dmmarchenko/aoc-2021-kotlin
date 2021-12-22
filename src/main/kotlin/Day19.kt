@@ -2,6 +2,32 @@ import kotlin.math.abs
 
 object Day19 {
 
+    val rotations = listOf<(Point) -> Point>(
+        { Point(it.x, it.y, it.z) },
+        { Point(it.x, -it.z, it.y) },
+        { Point(it.x, -it.y, -it.z) },
+        { Point(it.x, it.z, -it.y) },
+        { Point(-it.x, -it.y, it.z) },
+        { Point(-it.x, -it.z, -it.y) },
+        { Point(-it.x, it.y, -it.z) },
+        { Point(-it.x, it.z, it.y) },
+        { Point(-it.z, it.x, -it.y) },
+        { Point(it.y, it.x, -it.z) },
+        { Point(it.z, it.x, it.y) },
+        { Point(-it.y, it.x, it.z) },
+        { Point(it.z, -it.x, -it.y) },
+        { Point(it.y, -it.x, it.z) },
+        { Point(-it.z, -it.x, it.y) },
+        { Point(-it.y, -it.x, -it.z) },
+        { Point(-it.y, -it.z, it.x) },
+        { Point(it.z, -it.y, it.x) },
+        { Point(it.y, it.z, it.x) },
+        { Point(-it.z, it.y, it.x) },
+        { Point(it.z, it.y, -it.x) },
+        { Point(-it.y, it.z, -it.x) },
+        { Point(-it.z, -it.y, -it.x) },
+        { Point(it.y, -it.z, -it.x) })
+
     fun part1(input: List<String>): Int {
         val scanners = parseInput(input)
         return assembleMap(scanners).beacons.size
@@ -11,7 +37,8 @@ object Day19 {
         val scanners = parseInput(input)
         val assembleMap = assembleMap(scanners)
         return assembleMap.scannersPositions.let { positions ->
-            positions.flatMapIndexed { index, first -> positions.drop(index + 1).map { second -> first to second } }
+            positions.flatMapIndexed { index, first -> positions.drop(index + 1)
+                .map { second -> first to second } }
                 .maxOf { (first, second) -> first distanceTo second }
         }
     }
@@ -54,7 +81,12 @@ object Day19 {
 
     data class Scanner(val beacons: Set<Point>) {
 
-        fun allRotations() = beacons.map { it.allRotations() }.transpose().map { Scanner(it) }
+        private fun allRotations(): List<Scanner> {
+            return (0..23).map { rIndex ->
+                val rotatedBeacons = beacons.map { beacon -> rotations[rIndex](beacon) }.toSet()
+                Scanner(rotatedBeacons)
+            }
+        }
 
         fun getTransformedIfOverlap(otherScanner: Scanner): TransformedScanner? {
             return otherScanner.allRotations().firstNotNullOfOrNull { otherReoriented ->
@@ -69,13 +101,6 @@ object Day19 {
                     }
                 }
             }
-        }
-    }
-
-    fun List<Set<Point>>.transpose(): List<Set<Point>> {
-        return when (all { it.isNotEmpty() }) {
-            true -> listOf(map { it.first() }.toSet()) + map { it.drop(1).toSet() }.transpose()
-            false -> emptyList()
         }
     }
 
@@ -94,16 +119,6 @@ object Day19 {
 
         infix fun distanceTo(b: Point): Int {
             return abs(this.x - b.x) + abs(this.y - b.y) + abs(this.z - b.z)
-        }
-
-        fun allRotations(): Set<Point> {
-            return setOf(
-                Point(x, y, z), Point(x, -z, y), Point(x, -y, -z), Point(x, z, -y), Point(-x, -y, z),
-                Point(-x, -z, -y), Point(-x, y, -z), Point(-x, z, y), Point(-z, x, -y), Point(y, x, -z),
-                Point(z, x, y), Point(-y, x, z), Point(z, -x, -y), Point(y, -x, z), Point(-z, -x, y),
-                Point(-y, -x, -z), Point(-y, -z, x), Point(z, -y, x), Point(y, z, x), Point(-z, y, x),
-                Point(z, y, -x), Point(-y, z, -x), Point(-z, -y, -x), Point(y, -z, -x),
-            )
         }
     }
 }
