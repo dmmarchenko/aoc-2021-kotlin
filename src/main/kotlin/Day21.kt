@@ -1,6 +1,7 @@
+import kotlin.math.max
 import kotlin.math.min
 
-typealias Positions = Map<Pair<Int, Int>, Long>
+typealias Positions = Map<Day21.Stats, Long>
 
 object Day21 {
 
@@ -41,42 +42,51 @@ object Day21 {
     }
 
     fun part2(input: List<String>): Long {
-        var pos1 = initPositions(input[0])
-        var pos2 = initPositions(input[1])
+        val state = GameState(0, 0, initPositions(input))
 
-        var moves = 0
-        while (true) {
-            moves++
-
-            pos1 = makeMove(pos1)
-            if (pos1.won()) return pos1.wonUniverses()
-            pos2 = makeMove(pos2)
-            if (pos2.won()) return pos2.wonUniverses()
-            println("Move")
+        while (state.positions.isNotEmpty()) {
+            makeMove(state)
         }
+        return max(state.firstWon, state.secondWon)
     }
 
-    private fun initPositions(str: String) = nextPositions(startingPosition(str), 1)
-        .mapKeys { it.key to it.key }
+    private fun initPositions(input: List<String>): Positions {
+        return nextPositions(
+            startingPosition(input.first()),
+            startingPosition(input.last()), 1
+        )
+            .mapKeys { Stats(it.key.first, it.key.first, it.key.second, it.key.second) }
+    }
 
-    private fun Positions.won(): Boolean = this.keys.any { it.second >= 21 }
-
-    private fun Positions.wonUniverses(): Long = this.filterKeys { it.second >= 21 }
-        .map { it.value }
-        .sum()
-
-    private fun nextPositions(startingPos: Int, multiplier: Long): Map<Int, Long> {
-        return increments.mapKeys { movePosition(startingPos, it.key) }
+    private fun nextPositions(pos1: Int, pos2: Int, multiplier: Long): Map<Pair<Int, Int>, Long> {
+        return increments.mapKeys { movePosition(pos1, it.key) to movePosition(pos2, it.key) }
             .mapValues { it.value.toLong() * multiplier }
     }
 
-    private fun makeMove(positions: Positions): Positions {
-        return positions.flatMap { (positionAndTotal, count) ->
-            nextPositions(positionAndTotal.first, count)
-                .mapKeys { it.key to (positionAndTotal.second + it.key) }.entries
-        }
+    private fun makeMove(state: GameState) {
+        val positions = state.positions
+            .flatMap { (position, count) ->
+                nextPositions(position.pos1, position.pos2, count)
+                    .mapKeys {
+                        Stats(
+                            it.key.first, position.total1 + it.key.first,
+                            it.key.second, position.total2 + it.key.second
+                        )
+                    }.entries
+            }
             .groupBy({ it.key }) { it.value }
             .mapValues { it.value.sum() }
+
+        positions.filter { it.key.gameFinished() }
+            .forEach { (stats, count) ->
+                if (stats.firstWon()) {
+                    state.firstWon += count
+                } else {
+                    state.secondWon += count
+                }
+            }
+
+        state.positions = positions.filter { !it.key.gameFinished() }
     }
 
     private fun startingPosition(str: String): Int = str.substring(28).toInt()
@@ -89,7 +99,13 @@ object Day21 {
         return newPos
     }
 
-    data class Stats(val pos1: Int, val total1: Int, val pos2: Int, val total2: Int)
+    data class GameState(var firstWon: Long, var secondWon: Long, var positions: Positions)
+
+    data class Stats(val pos1: Int, val total1: Int, val pos2: Int, val total2: Int) {
+        fun gameFinished(): Boolean = total1 >= 21 || total2 >= 21
+
+        fun firstWon(): Boolean = total1 >= 21
+    }
 
     class Dice {
         var c = 1
