@@ -1,11 +1,8 @@
-import kotlin.math.max
 import kotlin.math.min
-
-typealias Positions = Map<Day21.Stats, Long>
 
 object Day21 {
 
-    private val increments = mapOf(
+    private val increments = mapOf<Int, Long>(
         3 to 1,
         4 to 3,
         5 to 6,
@@ -14,6 +11,7 @@ object Day21 {
         8 to 3,
         9 to 1
     )
+    private val cache = mutableMapOf<GameState, WinCount>()
 
     fun part1(input: List<String>): Long {
         var pos1 = startingPosition(input[0])
@@ -42,51 +40,12 @@ object Day21 {
     }
 
     fun part2(input: List<String>): Long {
-        val state = GameState(0, 0, initPositions(input))
-
-        while (state.positions.isNotEmpty()) {
-            makeMove(state)
-        }
-        return max(state.firstWon, state.secondWon)
-    }
-
-    private fun initPositions(input: List<String>): Positions {
-        return nextPositions(
-            startingPosition(input.first()),
-            startingPosition(input.last()), 1
+        val gameState = GameState(
+            PlayerState(startingPosition(input.first()) - 1, 0),
+            PlayerState(startingPosition(input.last()) - 1, 0)
         )
-            .mapKeys { Stats(it.key.first, it.key.first, it.key.second, it.key.second) }
-    }
-
-    private fun nextPositions(pos1: Int, pos2: Int, multiplier: Long): Map<Pair<Int, Int>, Long> {
-        return increments.mapKeys { movePosition(pos1, it.key) to movePosition(pos2, it.key) }
-            .mapValues { it.value.toLong() * multiplier }
-    }
-
-    private fun makeMove(state: GameState) {
-        val positions = state.positions
-            .flatMap { (position, count) ->
-                nextPositions(position.pos1, position.pos2, count)
-                    .mapKeys {
-                        Stats(
-                            it.key.first, position.total1 + it.key.first,
-                            it.key.second, position.total2 + it.key.second
-                        )
-                    }.entries
-            }
-            .groupBy({ it.key }) { it.value }
-            .mapValues { it.value.sum() }
-
-        positions.filter { it.key.gameFinished() }
-            .forEach { (stats, count) ->
-                if (stats.firstWon()) {
-                    state.firstWon += count
-                } else {
-                    state.secondWon += count
-                }
-            }
-
-        state.positions = positions.filter { !it.key.gameFinished() }
+        val winCount = play(gameState)
+        return winCount.maxScore()
     }
 
     private fun startingPosition(str: String): Int = str.substring(28).toInt()
@@ -99,15 +58,43 @@ object Day21 {
         return newPos
     }
 
-    data class GameState(var firstWon: Long, var secondWon: Long, var positions: Positions)
-
-    data class Stats(val pos1: Int, val total1: Int, val pos2: Int, val total2: Int) {
-        fun gameFinished(): Boolean = total1 >= 21 || total2 >= 21
-
-        fun firstWon(): Boolean = total1 >= 21
+    private fun play(gameState: GameState): WinCount {
+        return when {
+            gameState.p1State.total >= 21 -> WinCount(1, 0)
+            gameState.p2State.total >= 21 -> WinCount(0, 1)
+            else -> cache.getOrPut(gameState) {
+                increments.map { (inc, incCount) -> play(gameState.next(inc)) * incCount }
+                    .reduce { acc, count -> acc + count }
+            }
+        }
     }
 
-    class Dice {
+    private data class GameState(var p1State: PlayerState, val p2State: PlayerState, val p1Turn: Boolean = true) {
+        fun next(roll: Int): GameState {
+            return GameState(
+                if (p1Turn) p1State.next(roll) else p1State,
+                if (!p1Turn) p2State.next(roll) else p2State,
+                !p1Turn
+            )
+        }
+    }
+
+    private data class PlayerState(val pos: Int, val total: Int) {
+        fun next(roll: Int): PlayerState {
+            val newPos = (pos + roll) % 10
+            return PlayerState(newPos, total + newPos + 1)
+        }
+    }
+
+    private data class WinCount(val p1: Long, val p2: Long) {
+        operator fun plus(other: WinCount) = WinCount(p1 + other.p1, p2 + other.p2)
+
+        operator fun times(other: Long) = WinCount(p1 * other, p2 * other)
+
+        fun maxScore() = maxOf(p1, p2)
+    }
+
+    private class Dice {
         var c = 1
 
         fun roll(): Int {
