@@ -1,21 +1,9 @@
 object Day22 {
 
-    fun part1(input: List<String>): Int {
-        val commands = parseInput(input)
-        val lightPoints = mutableSetOf<Point>()
-
-        commands
+    fun part1(input: List<String>): Long {
+        val cuboids = parseInput(input)
             .filter { it.inBounds() }
-            .forEach {
-                val points = it.points()
-                if (it.sign == 1) {
-                    lightPoints += points
-                } else {
-                    lightPoints -= points
-                }
-            }
-
-        return lightPoints.size
+        return solve(cuboids)
     }
 
     fun part2(input: List<String>): Long {
@@ -69,16 +57,6 @@ object Day22 {
             return null
         }
 
-        fun points(): Set<Point> {
-            return x.flatMap { xC ->
-                y.flatMap { yC ->
-                    z.map { zC ->
-                        Point(xC, yC, zC)
-                    }
-                }
-            }.toSet()
-        }
-
         fun inBounds(): Boolean {
             return listOf(x.first, y.first, z.first).all { it >= -50 } &&
                     listOf(x.last, y.last, z.last).all { it <= 50 }
@@ -99,7 +77,7 @@ object Day22 {
     }
 
     private fun IntRange.intersect(other: IntRange): IntRange {
-        return maxOf(this.first, other.first) .. minOf(this.last, other.last)
+        return maxOf(this.first, other.first)..minOf(this.last, other.last)
     }
 
     private fun IntRange.length(): Int {
